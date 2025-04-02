@@ -50,9 +50,36 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
 # uploads directory
-/uploads/ 
+/uploads/
+
+# Virtual Environment
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+processed_images/
+traditional_results/
+test_results/
+*.zip
+*.tar.gz
+
+# Large data files
+test_data/images/*.png
+comparison_results/*.png
+results/*.png
+
+# Keep only the latest comparison results JSON
+comparison_results/comparison_*.json
+!comparison_results/comparison_latest.json 

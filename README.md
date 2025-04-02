@@ -1,21 +1,55 @@
-# Quantum Medical Image Scanner
+# Quantum Medical Image Processing
 
-A web application that leverages quantum computing techniques for medical image analysis, anomaly detection, and visualization.
+This project implements quantum-inspired image processing techniques for medical images, including CT scans and regular images.
 
-![Quantum Medical Image Scanner](https://via.placeholder.com/1200x630?text=Quantum+Medical+Image+Scanner)
+## Setup
 
-## Overview
+1. Install the required dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-The Quantum Medical Image Scanner is a cutting-edge application that demonstrates the potential of quantum computing in medical image processing. It combines modern web technologies with simulated quantum algorithms to analyze medical scan images, detect anomalies, and provide comprehensive visualization of results.
+2. Create necessary directories:
+```bash
+mkdir uploads
+mkdir test_data
+mkdir test_results
+```
+
+## Usage
+
+### 1. Process a Single Image
+
+To process a single image:
+```bash
+python quantum_processing.py path/to/your/image.jpg
+```
+
+The script supports both regular images (.jpg, .png) and CT scans (.dcm).
+
+### 2. Run Comprehensive Tests
+
+To run comprehensive tests on a sample dataset:
+```bash
+python test_quantum_processing.py
+```
+
+This will:
+- Download a sample dataset (if not already present)
+- Process up to 300 images
+- Generate test results in the `test_results` directory
+
+### Output
+
+The processed images will be saved with '_processed' suffix in the same directory as the input images. Test results will be saved in the `test_results` directory.
 
 ## Features
 
-- **Image Upload**: Upload medical scan images in various formats (JPEG, PNG, etc.)
-- **Quantum Image Processing**: Process images using simulated quantum computing techniques
-- **Anomaly Detection**: Automatically identify and highlight potential anomalies in medical scans
-- **Interactive Visualization**: View processed images alongside metrics and statistical analysis
-- **Detailed Metrics**: Get insights through entropy, contrast, and brightness measurements
-- **Anomaly Classification**: Classification of different types of anomalies with location data
+- Quantum-inspired image processing
+- CT scan analysis with Hounsfield units
+- Anomaly detection
+- Image quality assessment
+- Comparison with classical processing methods
 
 ## Technology Stack
 
