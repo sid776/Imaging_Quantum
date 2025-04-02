@@ -1,10 +1,16 @@
 import os
 import quantum_processing as qp
 import cv2
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
 def process_uploaded_image(image_path):
     """Process a single uploaded image and display results"""
+    # Create all necessary directories
+    for directory in ['processed_images', 'results', 'comparison_results']:
+        os.makedirs(directory, exist_ok=True)
+    
     if not os.path.exists(image_path):
         print(f"Error: Image not found at {image_path}")
         return
@@ -48,7 +54,6 @@ def process_uploaded_image(image_path):
     
     # Save the figure
     output_dir = 'results'
-    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(image_path))[0]}_analysis.png")
     plt.savefig(output_path, bbox_inches='tight')
     plt.close()

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Medical Image Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .result-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .image-preview {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+        .metrics-card {
+            margin: 10px 0;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Quantum Medical Image Scanner</h1>
+        
+        <!-- Upload Form -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Upload Medical Image</h5>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" id="imageFile" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Process Image</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Processing image...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div class="result-container">
+            <div class="row">
+                <!-- Original Image -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Original Image</h5>
+                            <img id="originalImage" class="image-preview" src="" alt="Original Image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processed Image -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quantum Processed Image</h5>
+                            <img id="processedImage" class="image-preview" src="" alt="Processed Image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card metrics-card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quantum Metrics</h5>
+                            <div id="quantumMetrics"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card metrics-card">
+                        <div class="card-body">
+                            <h5 class="card-title">Comparison Metrics</h5>
+                            <div id="comparisonMetrics"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomalies -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Detected Anomalies</h5>
+                    <div id="anomaliesList"></div>
+                </div>
+            </div>
+
+            <!-- Download Buttons -->
+            <div class="text-center mt-4">
+                <button class="btn btn-success" id="downloadAnalysis">Download Analysis</button>
+                <button class="btn btn-info" id="downloadComparison">Download Comparison</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('imageFile');
+            formData.append('file', fileInput.files[0]);
+
+            // Show loading
+            document.querySelector('.loading').style.display = 'block';
+            document.querySelector('.result-container').style.display = 'none';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Display results
+                    document.getElementById('originalImage').src = URL.createObjectURL(fileInput.files[0]);
+                    document.getElementById('processedImage').src = data.quantum_result.output_path;
+                    
+                    // Display quantum metrics
+                    const quantumMetrics = data.quantum_result.metrics;
+                    document.getElementById('quantumMetrics').innerHTML = `
+                        <p>Brightness: ${quantumMetrics.brightness.toFixed(2)}</p>
+                        <p>Contrast: ${quantumMetrics.contrast.toFixed(2)}</p>
+                        <p>Entropy: ${quantumMetrics.entropy.toFixed(2)}</p>
+                        <p>Quantum Entropy: ${quantumMetrics.quantum_entropy.toFixed(2)}</p>
+                        <p>Quantum Contrast: ${quantumMetrics.quantum_contrast.toFixed(2)}</p>
+                    `;
+
+                    // Display comparison metrics
+                    const comparisonMetrics = data.comparison_result;
+                    document.getElementById('comparisonMetrics').innerHTML = `
+                        <p>Structural Similarity: ${comparisonMetrics.structural_similarity.toFixed(3)}</p>
+                        <p>Mean Squared Error: ${comparisonMetrics.mean_squared_error.toFixed(3)}</p>
+                        <p>Quantum Anomalies: ${comparisonMetrics.quantum_anomalies}</p>
+                        <p>Traditional Anomalies: ${comparisonMetrics.traditional_anomalies}</p>
+                    `;
+
+                    // Display anomalies
+                    const anomaliesList = document.getElementById('anomaliesList');
+                    anomaliesList.innerHTML = '';
+                    data.quantum_result.anomalies.forEach((anomaly, index) => {
+                        anomaliesList.innerHTML += `
+                            <div class="alert alert-warning">
+                                <strong>Anomaly ${index + 1}:</strong><br>
+                                Type: ${anomaly.type}<br>
+                                Location: [${anomaly.location.join(', ')}]<br>
+                                Severity: ${anomaly.severity.toFixed(3)}
+                            </div>
+                        `;
+                    });
+
+                    // Show results
+                    document.querySelector('.result-container').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error processing image: ' + error.message);
+            } finally {
+                document.querySelector('.loading').style.display = 'none';
+            }
+        });
+
+        // Download handlers
+        document.getElementById('downloadAnalysis').addEventListener('click', () => {
+            const filename = document.getElementById('processedImage').src.split('/').pop();
+            window.location.href = `/download/${filename}`;
+        });
+
+        document.getElementById('downloadComparison').addEventListener('click', () => {
+            const filename = 'comparison_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.json';
+            window.location.href = `/download/${filename}`;
+        });
+    </script>
+</body>
+</html> 

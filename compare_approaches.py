@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from datetime import datetime
 import json
-import quantum_processing as qp
+from quantum_processing import process_image
 from skimage.metrics import structural_similarity as ssim
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
@@ -73,10 +73,10 @@ def traditional_image_processing(image_path):
         print(f"Error in traditional processing: {str(e)}")
         return None
 
-def compare_approaches(image_path):
+def compare_quantum_traditional(image_path):
     """Compare quantum and traditional approaches"""
     # Process with quantum approach
-    quantum_result = qp.process_image(image_path)
+    quantum_result = process_image(image_path)
     if not quantum_result['success']:
         print(f"Error in quantum processing: {quantum_result.get('error', 'Unknown error')}")
         return None
@@ -150,7 +150,7 @@ def main():
     results = []
     for image_path in test_images:
         print(f"\nProcessing image: {image_path}")
-        result = compare_approaches(image_path)
+        result = compare_quantum_traditional(image_path)
         if result:
             results.append(result)
             

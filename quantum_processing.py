@@ -1,12 +1,10 @@
 import numpy as np
 import cv2
 from qiskit import QuantumCircuit
-from qiskit_aer import Aer
-from qiskit.primitives import Sampler
+from qiskit_aer import AerSimulator
 from PIL import Image
 import os
 import json
-import pydicom
 from datetime import datetime
 
 def quantum_feature_extraction(image_data, n_qubits=8):
@@ -55,17 +53,15 @@ def quantum_feature_extraction(image_data, n_qubits=8):
         qc.measure(i, i)
     
     # Execute circuit with increased shots for better accuracy
-    backend = Aer.get_backend('qasm_simulator')
-    sampler = Sampler()
-    job = sampler.run(qc, shots=8192)
-    result = job.result()
-    counts = result.quasi_dists[0]
+    backend = AerSimulator()
+    result = backend.run(qc, shots=8192).result()
+    counts = result.get_counts()
     
     # Enhanced feature extraction with normalization
     features = np.zeros(2**n_qubits)
     total_counts = sum(counts.values())
     for state, count in counts.items():
-        features[state] = count / total_counts
+        features[int(state, 2)] = count / total_counts
     
     # Calculate quantum entropy and additional quantum metrics
     quantum_entropy = -np.sum(features * np.log2(features + 1e-10))
@@ -80,11 +76,23 @@ def quantum_feature_extraction(image_data, n_qubits=8):
 def process_image(image_path):
     """Enhanced image processing with improved quantum features and anomaly detection"""
     try:
-        # Load and preprocess image
-        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        # Verify file exists
+        if not os.path.exists(image_path):
+            return {'success': False, 'error': f'Image file not found: {image_path}'}
+            
+        # Load and preprocess image with detailed error checking
+        image = cv2.imread(image_path)
         if image is None:
-            return {'success': False, 'error': 'Failed to load image'}
+            return {'success': False, 'error': f'Failed to load image: {image_path}. Please ensure it is a valid image file.'}
+            
+        # Convert to grayscale if image is in color
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
+        # Verify image dimensions
+        if image.size == 0:
+            return {'success': False, 'error': 'Image is empty'}
+            
         # Create output directories if they don't exist
         processed_dir = 'processed_images'
         os.makedirs(processed_dir, exist_ok=True)
@@ -206,7 +214,7 @@ def process_image(image_path):
         }
         
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        return {'success': False, 'error': f'Error processing image: {str(e)}'}
 
 # Make functions available for import
 __all__ = ['process_image', 'quantum_feature_extraction']
