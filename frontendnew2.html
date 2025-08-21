@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data Status</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f6f8fb;color:#0f172a}
+    header{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 16px}
+    h1{font-size:16px;margin:0}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    .label{font-size:12px;color:#64748b}
+    .big{font-size:28px;font-weight:600;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
+    th{background:#fff;position:sticky;top:0}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .muted{color:#64748b;font-size:12px}
+    .right{text-align:right}
+    .pill{display:none;padding:4px 8px;border-radius:999px;font-size:12px}
+    .pill.ok{background:#ecfdf5;color:#065f46}
+    .pill.err{background:#fee2e2;color:#991b1b}
+    .topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .controls{display:flex;gap:8px;align-items:center}
+    input[type="date"],button{border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;background:#fff}
+    button{background:#0f172a;color:#fff;border-color:#0f172a;cursor:pointer}
+    @media (max-width: 900px){.row{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+    @media (max-width: 600px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topline">
+      <h1>Data Status</h1>
+      <div class="controls">
+        <span id="pillOk" class="pill ok">OK</span>
+        <span id="pillErr" class="pill err">Error</span>
+        <input id="cob" type="date" />
+        <button id="refresh">Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="muted" id="last">—</div>
+
+    <section class="row" style="margin-top:12px;">
+      <div class="card">
+        <div class="label">Valuation · Books</div>
+        <div class="big" id="cardValBooks">—</div>
+        <div class="muted">Count by BOOK_NM</div>
+      </div>
+      <div class="card">
+        <div class="label">Risk Factor Shocks</div>
+        <div class="big" id="cardShocks">—</div>
+        <div class="muted">By factor & curve</div>
+      </div>
+      <div class="card">
+        <div class="label">Sensitivities · Books</div>
+        <div class="big" id="cardSens">—</div>
+        <div class="muted">Count by BOOK_NM</div>
+      </div>
+      <div class="card">
+        <div class="label">Valuation Runs</div>
+        <div class="big" id="cardRuns">—</div>
+        <div class="muted">Distinct RUN_ID (latest COB)</div>
+      </div>
+    </section>
+
+    <section class="grid2" style="margin-top:16px;">
+      <div class="card">
+        <div class="topline"><strong>Valuation: count by book</strong><span class="muted">latest COB</span></div>
+        <div style="max-height:420px;overflow:auto;">
+          <table>
+            <thead><tr><th>Book</th><th class="right">Count</th></tr></thead>
+            <tbody id="tblValBooks"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="topline"><strong>Risk factor shocks</strong><span class="muted">latest COB</span></div>
+        <div style="max-height:420px;overflow:auto;">
+          <table>
+            <thead><tr><th>Risk factor</th><th>Curve</th><th class="right">Count</th></tr></thead>
+            <tbody id="tblShocks"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="topline"><strong>Sensitivities: count by book</strong><span class="muted">latest COB</span></div>
+        <div style="max-height:420px;overflow:auto;">
+          <table>
+            <thead><tr><th>Book</th><th class="right">Count</th></tr></thead>
+            <tbody id="tblSens"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="topline"><strong>Valuation runs (distinct)</strong><span class="muted">latest COB</span></div>
+        <div id="runsBox" style="font-size:36px;font-weight:600;">—</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // endpoints (unchanged)
+    const URLS = {
+      books: "/api/valuation/book_counts",
+      shocks: "/api/riskshocks/counts",
+      sens: "/api/sensitivities/book_counts",
+      runs: "/api/valuation/run_counts"
+    };
+
+    const $ = (id)=>document.getElementById(id);
+    const fmt = (n)=> (n==null? "—" : Number(n).toLocaleString());
+
+    function setStatus(ok){
+      $("pillOk").style.display = ok ? "inline-block" : "none";
+      $("pillErr").style.display = ok ? "none" : "inline-block";
+    }
+
+    function qs(params){
+      const d = $("cob").value;
+      return d ? "?date="+encodeURIComponent(d) : "";
+    }
+
+    async function getJSON(url){
+      const r = await fetch(url+qs(), {headers:{"Accept":"application/json"}});
+      if(!r.ok) throw new Error(r.status+" "+r.statusText);
+      return r.json();
+    }
+
+    async function load(){
+      setStatus(true);
+      $("last").textContent = "Refreshing…";
+
+      try{
+        // valuation by book
+        const bookRows = await getJSON(URLS.books);
+        $("tblValBooks").innerHTML = (bookRows||[]).map(r =>
+          `<tr><td>${r.book ?? ""}</td><td class="right">${fmt(r.count)}</td></tr>`
+        ).join("");
+        $("cardValBooks").textContent = fmt((bookRows||[]).reduce((a,b)=>a+(+b.count||0),0));
+
+        // shocks
+        const shockRows = await getJSON(URLS.shocks);
+        $("tblShocks").innerHTML = (shockRows||[]).map(r =>
+          `<tr><td>${r.risk_factor ?? ""}</td><td>${r.curve ?? ""}</td><td class="right">${fmt(r.count)}</td></tr>`
+        ).join("");
+        $("cardShocks").textContent = fmt((shockRows||[]).reduce((a,b)=>a+(+b.count||0),0));
+
+        // sensitivities by book
+        const sensRows = await getJSON(URLS.sens);
+        $("tblSens").innerHTML = (sensRows||[]).map(r =>
+          `<tr><td>${r.book ?? ""}</td><td class="right">${fmt(r.count)}</td></tr>`
+        ).join("");
+        $("cardSens").textContent = fmt((sensRows||[]).reduce((a,b)=>a+(+b.count||0),0));
+
+        // run count
+        const runResp = await getJSON(URLS.runs);
+        const runCount = Array.isArray(runResp) ? (runResp[0]?.run_count ?? 0) : (runResp?.run_count ?? 0);
+        $("cardRuns").textContent = fmt(runCount);
+        $("runsBox").textContent  = fmt(runCount);
+
+        $("last").textContent = "Last updated " + new Date().toLocaleString() + ($("cob").value ? " (COB: "+$("cob").value+")":"");
+        setStatus(true);
+      }catch(e){
+        setStatus(false);
+        $("last").textContent = "Error: "+(e.message||"request failed");
+        // keep previous data on screen if any
+      }
+    }
+
+    $("refresh").addEventListener("click", load);
+    $("cob").addEventListener("change", load);
+    load();
+  </script>
+</body>
+</html>
