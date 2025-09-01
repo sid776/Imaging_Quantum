@@ -109,12 +109,13 @@
 
   <script>
     // endpoints (unchanged)
+    const BACKEND = "http://127.0.0.1:8000";   // <- your Django/Ninja server
     const URLS = {
-      books: "/api/valuation/book_counts",
-      shocks: "/api/riskshocks/counts",
-      sens: "/api/sensitivities/book_counts",
-      runs: "/api/valuation/run_counts"
-    };
+      books: `${BACKEND}/api/valuation/book_counts`,
+      shocks: `${BACKEND}/api/riskshocks/counts`,
+      sens:  `${BACKEND}/api/sensitivities/book_counts`,
+      runs:  `${BACKEND}/api/valuation/run_counts`
+  };
 
     const $ = (id)=>document.getElementById(id);
     const fmt = (n)=> (n==null? "—" : Number(n).toLocaleString());
